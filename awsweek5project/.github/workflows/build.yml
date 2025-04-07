@@ -1,4 +1,4 @@
-name: Build, Push to ECR, and Deploy to AWS ECS
+name: Build, Push to ECR, and Deploy to ECS
 
 on:
   push:
