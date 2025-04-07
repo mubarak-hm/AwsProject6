@@ -51,7 +51,7 @@ jobs:
         env:
           ECR_REGISTRY: 867344428625.dkr.ecr.eu-central-1.amazonaws.com
           ECR_REPOSITORY: my-springboot-app
-          IMAGE_TAG: awsweek5project-${{ github.sha }}
+          IMAGE_TAG: awsweek5project
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
@@ -64,7 +64,7 @@ jobs:
             --task-definition my-springboot-app \
             --region ${{ secrets.AWS_REGION }} > task-def.json
           # Update the image and remove metadata fields
-          jq '.taskDefinition | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) | .containerDefinitions[0].image = "867344428625.dkr.ecr.eu-central-1.amazonaws.com/my-springboot-app:awsweek5project-3521f9fe2c38b4943bf57db73a4ed263fc4dcac5-${{ github.sha }}"' task-def.json > updated-task-def.json
+          jq '.taskDefinition | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) | .containerDefinitions[0].image = "867344428625.dkr.ecr.eu-central-1.amazonaws.com/my-springboot-app:awsweek5project"' task-def.json > updated-task-def.json
           # Register the new task definition
           aws ecs register-task-definition \
             --cli-input-json file://updated-task-def.json \
