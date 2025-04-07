@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Image Odyssey Gallery</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            font-family: 'Poppins', sans-serif;
+            color: #fff;
+        }
+        .gallery-container {
+            max-width: 1300px;
+            margin: 60px auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            color: #e67e22;
+            text-align: center;
+            font-size: 3rem;
+            margin-bottom: 40px;
+        }
+        .upload-section {
+            background: #3498db;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            margin-bottom: 50px;
+        }
+        .upload-section .btn-upload {
+            background: #e74c3c;
+            border: none;
+            padding: 10px 25px;
+            font-weight: 600;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+        }
+        .image-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            transition: transform 0.4s ease;
+        }
+        .image-card:hover {
+            transform: translateY(-10px);
+        }
+        .image-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        .image-card:hover img {
+            transform: scale(1.1);
+        }
+        .image-card .overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+            transform: translateY(100%);
+            transition: transform 0.4s ease;
+        }
+        .image-card:hover .overlay {
+            transform: translateY(0);
+        }
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .delete-btn:hover {
+            background: #c82333;
+        }
+        .pagination {
+            justify-content: center;
+            margin-top: 40px;
+        }
+        .pagination .page-link {
+            background: #3498db;
+            color: #fff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .pagination .active .page-link {
+            background: #e67e22;
+        }
+    </style>
+</head>
+<body>
+<div class="gallery-container">
+    <h1>Image Odyssey</h1>
+
+    <!-- Upload Section -->
+    <div class="upload-section">
+        <form th:action="@{/upload}" method="post" enctype="multipart/form-data" class="d-flex align-items-center justify-content-center gap-3">
+            <input type="file" class="form-control w-25" id="imageFile" name="imageFile" accept="image/*" required>
+            <input type="text" class="form-control w-25" id="description" name="description" placeholder="Enter description" required>
+            <button type="submit" class="btn btn-upload">Upload Now</button>
+        </form>
+        <div th:if="${message}" class="alert mt-3 text-center" th:classappend="${success} ? 'alert-success' : 'alert-danger'" th:text="${message}"></div>
+    </div>
+
+    <!-- Image Gallery -->
+    <div id="imageGrid" class="image-grid"></div>
+    <div th:unless="${not #lists.isEmpty(images)}" class="text-center text-muted" style="font-size: 1.2rem;">
+        Your gallery is empty—start uploading some magic!
+    </div>
+
+    <!-- Pagination -->
+    <nav aria-label="Page navigation">
+        <ul id="pagination" class="pagination"></ul>
+    </nav>
+</div>
+
+<!-- JavaScript for Pagination and Delete -->
+<script th:inline="javascript">
+    let images = /*[[${images}]]*/ [];
+    console.log("Images loaded:", images);
+
+    const itemsPerPage = 9;
+    let currentPage = 1;
+
+    function renderImages(page) {
+        const grid = document.getElementById('imageGrid');
+        grid.innerHTML = '';
+        const start = (page - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const paginatedImages = images.slice(start, end);
+
+        if (paginatedImages.length === 0 && page > 1) {
+            currentPage = 1;
+            renderImages(currentPage);
+            renderPagination();
+            return;
+        }
+
+        paginatedImages.forEach(image => {
+            const card = document.createElement('div');
+            card.className = 'image-card';
+            card.innerHTML = `
+                <img src="${image.url}" alt="${image.name || 'Unnamed Image'}"
+                     onerror="this.src='https://via.placeholder.com/300x250?text=Image+Not+Loaded'; console.error('Failed to load:', '${image.url}');">
+                <button class="delete-btn" onclick="deleteImage('${image.name}')">Delete</button>
+                <div class="overlay">
+                    <p>${image.name || 'Unnamed'}</p>
+                    <p>${image.description || 'No description'}</p>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function renderPagination() {
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+        const totalPages = Math.ceil(images.length / itemsPerPage);
+
+        if (totalPages <= 1) return;
+
+        const prevLi = document.createElement('li');
+        prevLi.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+        prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">«</a>`;
+        pagination.appendChild(prevLi);
+
+        for (let i = 1; i <= totalPages; i++) {
+            const li = document.createElement('li');
+            li.className = 'page-item' + (i === currentPage ? ' active' : '');
+            li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`;
+            pagination.appendChild(li);
+        }
+
+        const nextLi = document.createElement('li');
+        nextLi.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
+        nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">»</a>`;
+        pagination.appendChild(nextLi);
+    }
+
+    function changePage(page) {
+        if (page < 1 || page > Math.ceil(images.length / itemsPerPage)) return;
+        currentPage = page;
+        renderImages(currentPage);
+        renderPagination();
+    }
+
+    function deleteImage(imageName) {
+        if (!confirm('Are you sure you want to delete ' + imageName + '?')) return;
+
+        fetch('/delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ key: imageName })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to delete image');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                images = images.filter(img => img.name !== imageName);
+                renderImages(currentPage);
+                renderPagination();
+                alert('Image deleted successfully');
+            } else {
+                alert('Failed to delete image: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting image:', error);
+            alert('Error deleting image: ' + error.message);
+        });
+    }
+
+    if (images.length > 0) {
+        renderImages(currentPage);
+        renderPagination();
+    }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
