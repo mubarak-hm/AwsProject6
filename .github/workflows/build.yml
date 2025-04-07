@@ -56,70 +56,69 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-#      # Step 8: Create a new Task Definition revision
-#      - name: Create new Task Definition
-#        run: |
-#          # Get the current task definition
-#          aws ecs describe-task-definition \
-#            --task-definition my-springboot-app \
-#            --region ${{ secrets.AWS_REGION }} > task-def.json
-#          # Update the image and remove metadata fields
-#          jq '.taskDefinition | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) | .containerDefinitions[0].image = "public.ecr.aws/k8g5g0y1/my-springboot-app:awsweek5project-${{ github.sha }}"' task-def.json > updated-task-def.json
-#          # Register the new task definition
-#          aws ecs register-task-definition \
-#            --cli-input-json file://updated-task-def.json \
-#            --region ${{ secrets.AWS_REGION }} > new-task-def.json
-#          # Get the new task definition ARN
-#          echo "TASK_DEF_ARN=$(jq -r '.taskDefinition.taskDefinitionArn' new-task-def.json)" >> $GITHUB_ENV
-#
-#      # Step 9: Create AppSpec File
-#      - name: Create AppSpec File
-#        run: |
-#          cat << EOF > appspec.yaml
-#          version: 0.0
-#          Resources:
-#            - TargetService:
-#                Type: AWS::ECS::Service
-#                Properties:
-#                  TaskDefinition: "${{ env.TASK_DEF_ARN }}"
-#                  LoadBalancerInfo:
-#                    ContainerName: "springboot-app"
-#                    ContainerPort: 8080
-#          EOF
-#
-#      # Step 10: Install yq to convert YAML to JSON
-#      - name: Install yq
-#        run: |
-#          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-#          sudo chmod +x /usr/local/bin/yq
-#
-#      # Step 11: Convert AppSpec to JSON and Deploy to CodeDeploy
-#      - name: Deploy to CodeDeploy
-#        run: |
-#          # Convert appspec.yaml to JSON
-#          yq eval -o=json appspec.yaml > appspec.json
-#          # JSON-encode the AppSpec content as a string
-#          APPSPEC_CONTENT=$(jq -c . appspec.json)
-#          # Compute the SHA256 hash of the content
-#          APPSPEC_SHA256=$(echo -n "$APPSPEC_CONTENT" | sha256sum | awk '{print $1}')
-#          # Create revision.json using jq to ensure valid JSON
-#          jq -n \
-#            --arg content "$APPSPEC_CONTENT" \
-#            --arg sha256 "$APPSPEC_SHA256" \
-#            '{
-#              "revisionType": "AppSpecContent",
-#              "appSpecContent": {
-#                "content": $content,
-#                "sha256": $sha256
-#              }
-#            }' > revision.json
-#          # Debug: Print revision.json to verify its contents
-#          cat revision.json
-#          # Create the deployment using the revision file
-#          aws deploy create-deployment \
-#            --application-name MySpringBootApp \
-#            --deployment-group-name MyDeploymentGroup \
-#            --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
-#            --revision file://revision.json \
-#            --region ${{ secrets.AWS_REGION }}
-#
+      # Step 8: Create a new Task Definition revision
+      - name: Create new Task Definition
+        run: |
+          # Get the current task definition
+          aws ecs describe-task-definition \
+            --task-definition my-springboot-app \
+            --region ${{ secrets.AWS_REGION }} > task-def.json
+          # Update the image and remove metadata fields
+          jq '.taskDefinition | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) | .containerDefinitions[0].image = "867344428625.dkr.ecr.eu-central-1.amazonaws.com/my-springboot-app:awsweek5project-3521f9fe2c38b4943bf57db73a4ed263fc4dcac5-${{ github.sha }}"' task-def.json > updated-task-def.json
+          # Register the new task definition
+          aws ecs register-task-definition \
+            --cli-input-json file://updated-task-def.json \
+            --region ${{ secrets.AWS_REGION }} > new-task-def.json
+          # Get the new task definition ARN
+          echo "TASK_DEF_ARN=$(jq -r '.taskDefinition.taskDefinitionArn' new-task-def.json)" >> $GITHUB_ENV
+
+      # Step 9: Create AppSpec File
+      - name: Create AppSpec File
+        run: |
+          cat << EOF > appspec.yaml
+          version: 0.0
+          Resources:
+            - TargetService:
+                Type: AWS::ECS::Service
+                Properties:
+                  TaskDefinition: "${{ env.TASK_DEF_ARN }}"
+                  LoadBalancerInfo:
+                    ContainerName: "springboot-app"
+                    ContainerPort: 8080
+          EOF
+
+      # Step 10: Install yq to convert YAML to JSON
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      # Step 11: Convert AppSpec to JSON and Deploy to CodeDeploy
+      - name: Deploy to CodeDeploy
+        run: |
+          # Convert appspec.yaml to JSON
+          yq eval -o=json appspec.yaml > appspec.json
+          # JSON-encode the AppSpec content as a string
+          APPSPEC_CONTENT=$(jq -c . appspec.json)
+          # Compute the SHA256 hash of the content
+          APPSPEC_SHA256=$(echo -n "$APPSPEC_CONTENT" | sha256sum | awk '{print $1}')
+          # Create revision.json using jq to ensure valid JSON
+          jq -n \
+            --arg content "$APPSPEC_CONTENT" \
+            --arg sha256 "$APPSPEC_SHA256" \
+            '{
+              "revisionType": "AppSpecContent",
+              "appSpecContent": {
+                "content": $content,
+                "sha256": $sha256
+              }
+            }' > revision.json
+          # Debug: Print revision.json to verify its contents
+          cat revision.json
+          # Create the deployment using the revision file
+          aws deploy create-deployment \
+            --application-name MySpringBootApp \
+            --deployment-group-name MyDeploymentGroup \
+            --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
+            --revision file://revision.json \
+            --region ${{ secrets.AWS_REGION }}
